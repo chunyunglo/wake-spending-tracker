@@ -1,0 +1,43 @@
+<div id="wake-chart" aria-labelledby="chart-title" role="img">
+  <h1 id="chart-title">Wake-up time trend</h1>
+  <p class="text-muted">Synthetic demo data — earlier times appear lower on the chart.</p>
+  <svg aria-label="Line chart of synthetic wake-up times"></svg>
+  <p id="chart-summary" aria-live="polite"></p>
+</div>
+<style>
+  #wake-chart { font: 14px system-ui, sans-serif; color: var(--foreground); }
+  #wake-chart svg { width: 100%; height: 360px; overflow: visible; }
+  #wake-chart .grid { stroke: var(--border); opacity: .55; }
+  #wake-chart .line { fill: none; stroke: var(--viz-series-1); stroke-width: 2.5; }
+  #wake-chart .dot { fill: var(--viz-series-1); }
+  #wake-chart text { fill: var(--foreground); font-size: 12px; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script>
+(() => {
+  const data = [
+    { date: 'Demo 01', minutes: 390 }, { date: 'Demo 02', minutes: 450 },
+    { date: 'Demo 03', minutes: 420 }, { date: 'Demo 04', minutes: 360 },
+    { date: 'Demo 05', minutes: 480 }, { date: 'Demo 06', minutes: 405 }
+  ];
+  const root = d3.select('#wake-chart');
+  const svg = root.select('svg');
+  const summary = root.select('#chart-summary');
+  function draw() {
+    svg.selectAll('*').remove();
+    const width = svg.node().clientWidth || 680, height = 360;
+    const margin = { top: 20, right: 18, bottom: 48, left: 58 };
+    const x = d3.scalePoint().domain(data.map(d => d.date)).range([margin.left, width - margin.right]);
+    const y = d3.scaleLinear().domain([300, 540]).range([height - margin.bottom, margin.top]);
+    const g = svg.attr('viewBox', `0 0 ${width} ${height}`).append('g');
+    g.append('g').attr('transform', `translate(0,${height - margin.bottom})`).call(d3.axisBottom(x));
+    g.append('g').attr('transform', `translate(${margin.left},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(v => `${String(Math.floor(v / 60)).padStart(2,'0')}:${String(v % 60).padStart(2,'0')}`));
+    g.selectAll('.grid').data(y.ticks(5)).join('line').attr('class','grid').attr('x1',margin.left).attr('x2',width-margin.right).attr('y1',d=>y(d)).attr('y2',d=>y(d));
+    g.append('path').datum(data).attr('class','line').attr('d', d3.line().x(d=>x(d.date)).y(d=>y(d.minutes)));
+    g.selectAll('.dot').data(data).join('circle').attr('class','dot').attr('cx',d=>x(d.date)).attr('cy',d=>y(d.minutes)).attr('r',4).attr('data-tooltip',d=>`${d.date}: ${String(Math.floor(d.minutes / 60)).padStart(2,'0')}:${String(d.minutes % 60).padStart(2,'0')}`);
+    summary.text(`Range: ${d3.min(data,d=>d.minutes)}–${d3.max(data,d=>d.minutes)} minutes after midnight.`);
+  }
+  draw();
+  new ResizeObserver(draw).observe(svg.node());
+})();
+</script>
